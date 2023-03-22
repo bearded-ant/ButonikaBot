@@ -6,5 +6,4 @@ fun main(args: Array<String>) {
 
 
     println("${srt.token}, ${srt.userName}")
-    println("Program arguments: ${args.joinToString()}")
 }
