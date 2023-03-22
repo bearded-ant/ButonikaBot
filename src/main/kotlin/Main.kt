@@ -1,7 +1,10 @@
-fun main(args: Array<String>) {
-    println("Hello World!")
+import Bot.BotSettings
 
-    // Try adding program arguments via Run/Debug configuration.
-    // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
+fun main(args: Array<String>) {
+
+    val srt:BotSettings = BotSettings.instance!!
+
+
+    println("${srt.token}, ${srt.userName}")
     println("Program arguments: ${args.joinToString()}")
 }
