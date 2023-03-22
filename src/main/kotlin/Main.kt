@@ -1,4 +1,4 @@
-import Bot.BotSettings
+import bot.BotSettings
 
 fun main(args: Array<String>) {
 
