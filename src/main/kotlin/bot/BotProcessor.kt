@@ -1,19 +1,30 @@
 package bot
 
+import IOTools
 import jdk.jshell.spi.ExecutionControl.UserException
+import org.json.JSONObject
 import org.telegram.telegrambots.extensions.bots.commandbot.TelegramLongPollingCommandBot
+import org.telegram.telegrambots.extensions.bots.commandbot.commands.IBotCommand
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
-import org.telegram.telegrambots.meta.api.objects.File
 import org.telegram.telegrambots.meta.api.objects.InputFile
+import org.telegram.telegrambots.meta.api.objects.PhotoSize
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException
+import java.io.File
+import java.io.IOException
+import java.util.stream.Collectors
 
 
 class BotProcessor : TelegramLongPollingCommandBot() {
-    private val botSettings = BotSettings.instance
 
-    fun sendMessage(chatId: Long, message: String?) {
+    companion object {
+        fun newInstance(): BotProcessor = BotProcessor()
+        private const val TEXT_LIMIT = 512
+        private val botSettings = BotSettings.instance
+    }
+
+    private fun sendMessage(chatId: Long, message: String?) {
         try {
             val sendMessage = SendMessage
                 .builder()
@@ -26,8 +37,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         }
     }
 
-
-    fun sendImage(chatId: Long, path: String) {
+    private fun sendImage(chatId: Long, path: String) {
         try {
             val photo = SendPhoto()
             photo.photo = InputFile(path)
@@ -38,9 +48,133 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         }
     }
 
+    fun sendQRImage(chatId: Long?, path: String?) {
+        sendImage(chatId!!, path!!)
+        val file: File = File(path)
+        if (!file.delete()) {
+            println(String.format("File '%s' removing error", path))
+        }
+    }
+
     override fun getBotUsername(): String = botSettings?.userName!!
-    override fun processNonCommandUpdate(update: Update?) {
-        TODO("Not yet implemented")
+    override fun processInvalidCommandUpdate(update: Update) {
+        val command = update.message.text.substring(1)
+        sendMessage(
+            update.message.chatId, java.lang.String.format(
+                "Некорректная команда [%s], доступные команды: %s", command, registeredCommands.toString()
+            )
+        )
+    }
+
+    override fun processNonCommandUpdate(update: Update) {
+        if (update.hasMessage()) {
+            try {
+                when (getMessageType(update)!!) {
+                    MessageType.COMMAND -> processInvalidCommandUpdate(update)
+                    MessageType.IMAGE -> processImage(update)
+                    MessageType.TEXT -> processText(update)
+                }
+            } catch (e: UserException) {
+                sendMessage(update.message.chatId, e.message)
+            } catch (e: TelegramApiException) {
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
+                println(java.lang.String.format("Received message processing error: %s", e.message))
+            } catch (e: RuntimeException) {
+                println(java.lang.String.format("Received message processing error: %s", e.message))
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
+            } catch (e: IOException) {
+                println(java.lang.String.format("Received message processing error: %s", e.message))
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
+            } catch (e: UserException) {
+                println(java.lang.String.format("Received message processing error: %s", e.message))
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
+            }
+        }
+    }
+
+
+    private fun getMessageType(update: Update): MessageType? {
+        var messageType: MessageType? = null
+        return try {
+            if (update.message.photo != null)
+                messageType = MessageType.IMAGE
+            else if (update.message.text != null)
+                messageType = if (update.message.text.matches("""^/\w*$""".toRegex())) MessageType.COMMAND
+                else MessageType.TEXT
+
+            requireNotNull(messageType) { update.toString() }
+            messageType
+        } catch (e: RuntimeException) {
+            println(String.format("Invalid message type: %s", e.message))
+            messageType
+        }
+    }
+
+    private fun processImage(update: Update) {
+        logMessage(update.message.chatId, update.message.from.id, true, "\$image")
+
+        val photoSizes: List<PhotoSize> = update.message.photo
+        val fileUrl: String = getFileUrl(update.message.photo[photoSizes.lastIndex].fileId)
+        //todo
+//        val text: String = QRTools.getTextFromQR(fileUrl)
+        val text: String = "todo"
+
+        logMessage(update.message.chatId, update.message.from.id, false, text)
+        sendMessage(update.message.chatId, text)
+    }
+
+    private fun processText(update: Update) {
+        val text = update.message.text
+        logMessage(
+            update.message.chatId,
+            update.message.from.id,
+            true,
+            text
+        )
+        if (text.length > TEXT_LIMIT) {
+            println(java.lang.String.format("Message exceeds maximum length of %d", TEXT_LIMIT))
+        }
+        //todo
+//        val imageUrl: String = QRTools.encodeText(text)
+        val imageUrl: String = "todo"
+        logMessage(update.message.chatId, update.message.from.id, false, "\$image")
+        sendQRImage(update.message.chatId, imageUrl)
+    }
+
+
+    private fun getFileUrl(fileId: String): String {
+        val jsonObject: JSONObject = getFileRequest(fileId)
+        return ("https://api.telegram.org/file/bot%s/%s${botSettings!!.token}${jsonObject.get("file_path")}")
+    }
+
+    private fun getFileRequest(fileId: String): JSONObject {
+        val fileUrl = String.format(
+            "https://api.telegram.org/bot%s/getFile?file_id=%s",
+            botSettings!!.token,
+            fileId
+        )
+        return IOTools.readJsonFromUrl(fileUrl)
+    }
+
+    private fun logMessage(chatId: Long, userId: Long, input: Boolean, logText: String) {
+        var text = logText
+        if (text.length > TEXT_LIMIT) text = text.substring(0, TEXT_LIMIT)
+        println(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
+    }
+
+    private fun setRegisteredCommands() {
+        val regCommands = registeredCommands
+        regCommands
+            .stream()
+            .map(IBotCommand::getCommandIdentifier)
+            .collect(Collectors.toList())
+    }
+
+    private fun registerCommands() {
+        registerCommands()
+//        register(CommandStart())
+//        register(CommandHelp())
+        setRegisteredCommands()
     }
 
 }
