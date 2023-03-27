@@ -1,16 +1,18 @@
-package bot
+package bot.bot
 
-import IOTools
-import jdk.jshell.spi.ExecutionControl.UserException
+import bot.bot.command.CommandHelp
+import bot.bot.command.CommandStart
 import org.json.JSONObject
 import org.telegram.telegrambots.extensions.bots.commandbot.TelegramLongPollingCommandBot
 import org.telegram.telegrambots.extensions.bots.commandbot.commands.IBotCommand
+import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.PhotoSize
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 import java.io.File
 import java.io.IOException
 import java.util.stream.Collectors
@@ -20,10 +22,20 @@ class BotProcessor : TelegramLongPollingCommandBot() {
 
     companion object {
         fun newInstance(): BotProcessor = BotProcessor()
+
         private const val TEXT_LIMIT = 512
-        private val botSettings = BotSettings.instance
+        val botSettings = BotSettings.instance
+        val telegramBotsApi = TelegramBotsApi(DefaultBotSession::class.java)
     }
 
+    init {
+        try {
+            registerBot()
+            registerCommands()
+        } catch (e: TelegramApiException) {
+            throw RuntimeException("Telegram Bot initialization error: " + e.message)
+        }
+    }
     private fun sendMessage(chatId: Long, message: String?) {
         try {
             val sendMessage = SendMessage
@@ -56,6 +68,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         }
     }
 
+    override fun getBotToken(): String = botSettings?.token!!
     override fun getBotUsername(): String = botSettings?.userName!!
     override fun processInvalidCommandUpdate(update: Update) {
         val command = update.message.text.substring(1)
@@ -171,10 +184,20 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     }
 
     private fun registerCommands() {
-        registerCommands()
-//        register(CommandStart())
-//        register(CommandHelp())
+//        registerCommands()
+        register(CommandStart())
+        register(CommandHelp())
         setRegisteredCommands()
     }
+
+    private fun registerBot() {
+        try {
+            telegramBotsApi.registerBot(this)
+        } catch (e: TelegramApiException) {
+            throw RuntimeException("Telegram API initialization error: " + e.message)
+        }
+    }
+
+
 
 }

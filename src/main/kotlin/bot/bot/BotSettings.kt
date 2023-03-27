@@ -1,4 +1,4 @@
-package bot
+package bot.bot
 
 import java.io.IOException
 import java.util.*
@@ -7,6 +7,7 @@ import java.util.*
 const val FILE_NAME = "config.properties"
 
 class BotSettings {
+
     private var properties: Properties? = null
     var token: String? = null
     var userName: String? = null

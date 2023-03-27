@@ -1,4 +1,5 @@
-import org.json.JSONException
+package bot.bot
+
 import org.json.JSONObject
 import java.io.IOException
 import java.net.URL
