@@ -2,6 +2,8 @@ package bot.bot
 
 import bot.bot.command.CommandHelp
 import bot.bot.command.CommandStart
+import bot.bot.qr.QRTools
+import org.apache.logging.log4j.kotlin.logger
 import org.json.JSONObject
 import org.telegram.telegrambots.extensions.bots.commandbot.TelegramLongPollingCommandBot
 import org.telegram.telegrambots.extensions.bots.commandbot.commands.IBotCommand
@@ -36,16 +38,17 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             throw RuntimeException("Telegram Bot initialization error: " + e.message)
         }
     }
-    private fun sendMessage(chatId: Long, message: String?) {
+
+    private fun sendMessage(chatId: Long, message: String) {
         try {
             val sendMessage = SendMessage
                 .builder()
                 .chatId(chatId.toString())
-                .text(message!!)
+                .text(message)
                 .build()
             execute(sendMessage)
         } catch (e: TelegramApiException) {
-            println(String.format("Sending message error: %s", e.message))
+            logger(String.format("Sending message error: %s", e.message))
         }
     }
 
@@ -72,10 +75,12 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     override fun getBotUsername(): String = botSettings?.userName!!
     override fun processInvalidCommandUpdate(update: Update) {
         val command = update.message.text.substring(1)
+        val registeredCommandIdentifier = mutableListOf<String>()
+        registeredCommands.forEach { registeredCommandIdentifier.add("/${it.commandIdentifier}") }
+
         sendMessage(
-            update.message.chatId, java.lang.String.format(
-                "Некорректная команда [%s], доступные команды: %s", command, registeredCommands.toString()
-            )
+            update.message.chatId,
+            "Некорректная команда [$command], доступные команды: \n $registeredCommandIdentifier"
         )
     }
 
@@ -88,7 +93,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                     MessageType.TEXT -> processText(update)
                 }
             } catch (e: UserException) {
-                sendMessage(update.message.chatId, e.message)
+                sendMessage(update.message.chatId, e.message!!)
             } catch (e: TelegramApiException) {
                 sendMessage(update.message.chatId, "Ошибка обработки сообщения")
                 println(java.lang.String.format("Received message processing error: %s", e.message))
@@ -118,7 +123,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             requireNotNull(messageType) { update.toString() }
             messageType
         } catch (e: RuntimeException) {
-            println(String.format("Invalid message type: %s", e.message))
+            logger(String.format("Invalid message type: %s", e.message))
             messageType
         }
     }
@@ -128,9 +133,8 @@ class BotProcessor : TelegramLongPollingCommandBot() {
 
         val photoSizes: List<PhotoSize> = update.message.photo
         val fileUrl: String = getFileUrl(update.message.photo[photoSizes.lastIndex].fileId)
-        //todo
-//        val text: String = QRTools.getTextFromQR(fileUrl)
-        val text: String = "todo"
+
+        val text: String = QRTools().getTextFromQR(fileUrl)
 
         logMessage(update.message.chatId, update.message.from.id, false, text)
         sendMessage(update.message.chatId, text)
@@ -145,11 +149,11 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             text
         )
         if (text.length > TEXT_LIMIT) {
-            println(java.lang.String.format("Message exceeds maximum length of %d", TEXT_LIMIT))
+            logger(String.format("Message exceeds maximum length of %d", TEXT_LIMIT))
         }
-        //todo
-//        val imageUrl: String = QRTools.encodeText(text)
-        val imageUrl: String = "todo"
+
+        val imageUrl: String = QRTools().encodeText(text)!!
+
         logMessage(update.message.chatId, update.message.from.id, false, "\$image")
         sendQRImage(update.message.chatId, imageUrl)
     }
@@ -172,7 +176,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun logMessage(chatId: Long, userId: Long, input: Boolean, logText: String) {
         var text = logText
         if (text.length > TEXT_LIMIT) text = text.substring(0, TEXT_LIMIT)
-        println(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
+        logger(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
     }
 
     private fun setRegisteredCommands() {
@@ -184,7 +188,6 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     }
 
     private fun registerCommands() {
-//        registerCommands()
         register(CommandStart())
         register(CommandHelp())
         setRegisteredCommands()
@@ -197,7 +200,4 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             throw RuntimeException("Telegram API initialization error: " + e.message)
         }
     }
-
-
-
 }

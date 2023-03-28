@@ -23,6 +23,10 @@ dependencies {
 
     implementation("org.apache.logging.log4j:log4j-api-kotlin:1.2.0")
 
+    //zxing decoder
+    implementation("com.google.zxing:core:3.5.1")
+    implementation("com.google.zxing:javase:3.5.1")
+
 }
 
 tasks.test {
