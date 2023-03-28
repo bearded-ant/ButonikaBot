@@ -55,17 +55,19 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun sendImage(chatId: Long, path: String) {
         try {
             val photo = SendPhoto()
-            photo.photo = InputFile(path)
+
+            photo.photo = InputFile(File(path))
             photo.chatId = chatId.toString()
             execute(photo)
+
         } catch (e: TelegramApiException) {
             println(String.format("Sending image error: %s", e.message))
         }
     }
 
-    fun sendQRImage(chatId: Long?, path: String?) {
-        sendImage(chatId!!, path!!)
-        val file: File = File(path)
+    private fun sendQRImage(chatId: Long, path: String) {
+        sendImage(chatId, path)
+        val file = File(path)
         if (!file.delete()) {
             println(String.format("File '%s' removing error", path))
         }
@@ -95,17 +97,17 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             } catch (e: UserException) {
                 sendMessage(update.message.chatId, e.message!!)
             } catch (e: TelegramApiException) {
-                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
-                println(java.lang.String.format("Received message processing error: %s", e.message))
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения TE")
+                println(String.format("Received message processing error: %s", e.message))
             } catch (e: RuntimeException) {
-                println(java.lang.String.format("Received message processing error: %s", e.message))
-                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения RE")
+                println(String.format("Received message processing error: %s", e.message))
             } catch (e: IOException) {
-                println(java.lang.String.format("Received message processing error: %s", e.message))
-                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения IO")
+                println(String.format("Received message processing error: %s", e.message))
             } catch (e: UserException) {
-                println(java.lang.String.format("Received message processing error: %s", e.message))
-                sendMessage(update.message.chatId, "Ошибка обработки сообщения")
+                sendMessage(update.message.chatId, "Ошибка обработки сообщения UE")
+                println(String.format("Received message processing error: %s", e.message))
             }
         }
     }
@@ -114,13 +116,12 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun getMessageType(update: Update): MessageType? {
         var messageType: MessageType? = null
         return try {
-            if (update.message.photo != null)
-                messageType = MessageType.IMAGE
-            else if (update.message.text != null)
-                messageType = if (update.message.text.matches("""^/\w*$""".toRegex())) MessageType.COMMAND
-                else MessageType.TEXT
+            messageType = if (update.message.photo != null)
+                MessageType.IMAGE
+            else if (update.message.text != null && (update.message.text.matches("""^/\w*$""".toRegex())))
+                MessageType.COMMAND
+            else MessageType.TEXT
 
-            requireNotNull(messageType) { update.toString() }
             messageType
         } catch (e: RuntimeException) {
             logger(String.format("Invalid message type: %s", e.message))
@@ -152,7 +153,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             logger(String.format("Message exceeds maximum length of %d", TEXT_LIMIT))
         }
 
-        val imageUrl: String = QRTools().encodeText(text)!!
+        val imageUrl: String = QRTools().encodeText(text)
 
         logMessage(update.message.chatId, update.message.from.id, false, "\$image")
         sendQRImage(update.message.chatId, imageUrl)
@@ -176,7 +177,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun logMessage(chatId: Long, userId: Long, input: Boolean, logText: String) {
         var text = logText
         if (text.length > TEXT_LIMIT) text = text.substring(0, TEXT_LIMIT)
-        logger(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
+        logger().info(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
     }
 
     private fun setRegisteredCommands() {

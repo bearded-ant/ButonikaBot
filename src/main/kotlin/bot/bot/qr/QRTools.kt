@@ -20,7 +20,7 @@ const val CHARSET = "UTF-8"
 class QRTools : Logging {
 
     private val DEFAULT_VERSION: QRSize = QRSize.MEDIUM
-    private val qrSizes: HashMap<QRSize, Int>? = null
+    private val qrSizes = mutableMapOf<QRSize, Int>()
 
     fun getTextFromQR(url: String): String {
         val result: Result = try {
@@ -35,34 +35,35 @@ class QRTools : Logging {
         return result.text
     }
 
-    fun encodeText(text: String?, width: Int, height: Int): String? {
+    private fun encodeText(text: String?, width: Int, height: Int): String {
         val qrCodeWriter = QRCodeWriter()
         val hashtable = mutableMapOf<EncodeHintType, String>()
         hashtable[EncodeHintType.CHARACTER_SET] = CHARSET
         val bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hashtable)
         val path =
-            FileSystems.getDefault().getPath(java.lang.String.format("./images/%s.%s", UUID.randomUUID(), FILE_FORMAT))
+            FileSystems.getDefault().getPath(String.format("%s.%s", UUID.randomUUID(), FILE_FORMAT))
         MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path)
         return path.toAbsolutePath().toString()
     }
 
-    fun encodeText(text: String?, qrSize: QRSize?): String? {
-        val size = getQRSize(qrSize!!)
+    private fun encodeText(text: String?, qrSize: QRSize): String {
+        val size = getQRSize(qrSize)
         return encodeText(text, size, size)
     }
 
-    fun encodeText(text: String?): String? {
+    fun encodeText(text: String?): String {
         return encodeText(text, DEFAULT_VERSION)
     }
 
     init {
-        qrSizes?.put(QRSize.SMALL, 256)
-        qrSizes?.put(QRSize.MEDIUM, 512)
-        qrSizes?.put(QRSize.LARGE, 1024)
+        qrSizes.put(QRSize.SMALL, 256)
+        qrSizes.put(QRSize.MEDIUM, 512)
+        qrSizes.put(QRSize.LARGE, 1024)
     }
 
-    private fun getQRSize(qrSize: QRSize): Int = qrSizes!![qrSize]!!
-
+    //    private fun getQRSize(qrSize: QRSize): Int = qrSizes!![qrSize]!!
+    private fun getQRSize(qrSize: QRSize): Int = 512
+    val ads: Int = qrSizes[QRSize.MEDIUM]!!
     private fun getBitmapFromUrl(url: String): BinaryBitmap {
         val binaryBitmap: BinaryBitmap
         try {
