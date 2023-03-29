@@ -1,4 +1,5 @@
 import bot.bot.BotProcessor
+import firebase.FirebaseInit
 import org.apache.logging.log4j.kotlin.logger
 
 fun main(args: Array<String>) {
@@ -9,4 +10,6 @@ fun main(args: Array<String>) {
     } catch (e:RuntimeException) {
         logger("main").error(e.message.toString())
     }
+    val fireBirdInit = FirebaseInit()
+
 }

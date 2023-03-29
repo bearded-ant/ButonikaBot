@@ -27,6 +27,9 @@ dependencies {
     implementation("com.google.zxing:core:3.5.1")
     implementation("com.google.zxing:javase:3.5.1")
 
+    // firebase
+    implementation("com.google.firebase:firebase-admin:9.1.1")
+
 }
 
 tasks.test {
