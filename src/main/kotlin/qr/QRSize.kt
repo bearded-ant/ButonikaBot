@@ -1,4 +1,4 @@
-package bot.bot.qr
+package qr
 
 enum class QRSize {
     SMALL,

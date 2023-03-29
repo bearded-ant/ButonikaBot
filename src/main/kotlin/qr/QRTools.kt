@@ -1,4 +1,4 @@
-package bot.bot.qr
+package qr
 
 import com.google.zxing.*
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource
@@ -61,9 +61,8 @@ class QRTools : Logging {
         qrSizes.put(QRSize.LARGE, 1024)
     }
 
-    //    private fun getQRSize(qrSize: QRSize): Int = qrSizes!![qrSize]!!
-    private fun getQRSize(qrSize: QRSize): Int = 512
-    val ads: Int = qrSizes[QRSize.MEDIUM]!!
+    private fun getQRSize(qrSize: QRSize): Int = qrSizes[qrSize]!!
+
     private fun getBitmapFromUrl(url: String): BinaryBitmap {
         val binaryBitmap: BinaryBitmap
         try {

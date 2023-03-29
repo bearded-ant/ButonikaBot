@@ -2,12 +2,11 @@ package bot.bot
 
 import bot.bot.command.CommandHelp
 import bot.bot.command.CommandStart
-import bot.bot.qr.QRTools
 import org.apache.logging.log4j.kotlin.logger
-import org.json.JSONObject
 import org.telegram.telegrambots.extensions.bots.commandbot.TelegramLongPollingCommandBot
 import org.telegram.telegrambots.extensions.bots.commandbot.commands.IBotCommand
 import org.telegram.telegrambots.meta.TelegramBotsApi
+import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.objects.InputFile
@@ -15,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.PhotoSize
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
+import qr.QRTools
 import java.io.File
 import java.io.IOException
 import java.util.stream.Collectors
@@ -132,9 +132,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun processImage(update: Update) {
         logMessage(update.message.chatId, update.message.from.id, true, "\$image")
 
-        val photoSizes: List<PhotoSize> = update.message.photo
-        val fileUrl: String = getFileUrl(update.message.photo[photoSizes.lastIndex].fileId)
-
+        val fileUrl = getFileUrl(update)
         val text: String = QRTools().getTextFromQR(fileUrl)
 
         logMessage(update.message.chatId, update.message.from.id, false, text)
@@ -160,19 +158,12 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     }
 
 
-    private fun getFileUrl(fileId: String): String {
-        val jsonObject: JSONObject = getFileRequest(fileId)
-        return ("https://api.telegram.org/file/bot%s/%s${botSettings!!.token}${jsonObject.get("file_path")}")
+    private fun getFileUrl(update: Update): String {
+        val photoSizes: List<PhotoSize> = update.message.photo
+        val getFile = GetFile(update.message.photo[photoSizes.lastIndex].fileId)
+        return execute(getFile).getFileUrl(botToken)
     }
 
-    private fun getFileRequest(fileId: String): JSONObject {
-        val fileUrl = String.format(
-            "https://api.telegram.org/bot%s/getFile?file_id=%s",
-            botSettings!!.token,
-            fileId
-        )
-        return IOTools.readJsonFromUrl(fileUrl)
-    }
 
     private fun logMessage(chatId: Long, userId: Long, input: Boolean, logText: String) {
         var text = logText
