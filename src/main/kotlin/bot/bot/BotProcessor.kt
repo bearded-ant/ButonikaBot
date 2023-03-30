@@ -1,6 +1,7 @@
 package bot.bot
 
 import bot.bot.command.CommandHelp
+import bot.bot.command.CommandReg
 import bot.bot.command.CommandStart
 import org.apache.logging.log4j.kotlin.logger
 import org.telegram.telegrambots.extensions.bots.commandbot.TelegramLongPollingCommandBot
@@ -182,6 +183,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun registerCommands() {
         register(CommandStart())
         register(CommandHelp())
+        register(CommandReg())
         setRegisteredCommands()
     }
 

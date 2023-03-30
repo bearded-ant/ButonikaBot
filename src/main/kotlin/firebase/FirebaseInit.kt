@@ -10,7 +10,7 @@ class FirebaseInit {
 
         val settings: FireBaseSettings = FireBaseSettings.instance!!
 
-        val serviceAccount: FileInputStream = FileInputStream("${settings.fireBaseTokenName}")
+        val serviceAccount = FileInputStream("${settings.fireBaseTokenName}")
 
         val fireBaseOption: FirebaseOptions = FirebaseOptions.builder()
             .setCredentials(GoogleCredentials.fromStream(serviceAccount))
@@ -18,17 +18,5 @@ class FirebaseInit {
             .build()
 
         FirebaseApp.initializeApp(fireBaseOption)
-
-//        val ref: DatabaseReference = FirebaseDatabase.getInstance().getReference("")
-//
-//        ref.addListenerForSingleValueEvent(object : ValueEventListener {
-//            override fun onDataChange(snapshot: DataSnapshot?) {
-//                TODO("Not yet implemented")
-//            }
-//
-//            override fun onCancelled(error: DatabaseError?) {
-//                TODO("Not yet implemented")
-//            }
-//        })
     }
 }
