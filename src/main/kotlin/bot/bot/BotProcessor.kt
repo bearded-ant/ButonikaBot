@@ -113,7 +113,6 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         }
     }
 
-
     private fun getMessageType(update: Update): MessageType? {
         var messageType: MessageType? = null
         return try {
@@ -126,7 +125,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             messageType
         } catch (e: RuntimeException) {
             logger(String.format("Invalid message type: %s", e.message))
-            messageType
+            null
         }
     }
 

@@ -1,5 +1,6 @@
 package bot.bot.command
 
+import bot.bot.keyboards.CourierRegKeyboard
 import com.google.firebase.database.FirebaseDatabase
 import firebase.FireBaseRepo
 import model.Courier
@@ -8,6 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.bots.AbsSender
 
 class CommandReg : Command("reg", "регистрация"), Logging {
+    private val courierRegKeyboard: CourierRegKeyboard = CourierRegKeyboard()
     override fun processMessage(absSender: AbsSender, message: Message, strings: Array<String>?) {
 
         val database: FirebaseDatabase = FirebaseDatabase.getInstance()
@@ -19,7 +21,7 @@ class CommandReg : Command("reg", "регистрация"), Logging {
             val courierRealName = "name"
             val courierId = message.chatId.toString()
 
-            val courier: Courier = Courier(
+            val courier = Courier(
                 id = courierId,
                 name = courierRealName,
                 nicName = courierNicName,
@@ -29,9 +31,11 @@ class CommandReg : Command("reg", "регистрация"), Logging {
             courierMap[message.chatId.toString()] = courier
 
             courierRef.setValueAsync(courierMap)
+
             message.text = ("Добро пожаловать, $courierNicName!")
-        }
-        else message.text = ("Вы уже зарегистрированы")
+            message.replyMarkup = courierRegKeyboard.inlineRegistrationKeyboard()
+
+        } else message.text = ("Вы уже зарегистрированы")
         super.processMessage(absSender, message, strings)
     }
 }
