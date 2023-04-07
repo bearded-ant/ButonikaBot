@@ -3,6 +3,10 @@ package bot.bot
 import bot.bot.command.CommandHelp
 import bot.bot.command.CommandReg
 import bot.bot.command.CommandStart
+import com.google.firebase.database.FirebaseDatabase
+import firebase.DeliveryAreaCallback
+import firebase.FireBaseRepo
+import model.DeliveryArea
 import org.apache.logging.log4j.kotlin.logger
 import org.telegram.telegrambots.extensions.bots.commandbot.TelegramLongPollingCommandBot
 import org.telegram.telegrambots.extensions.bots.commandbot.commands.IBotCommand
@@ -110,6 +114,23 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                 sendMessage(update.message.chatId, "Ошибка обработки сообщения UE")
                 println(String.format("Received message processing error: %s", e.message))
             }
+        } else if (update.hasCallbackQuery()) {
+
+            val test = update.callbackQuery.data
+
+            val database = FirebaseDatabase.getInstance().getReference("deliveryArea")
+
+            FireBaseRepo(database).getDeliveryAreas(object : DeliveryAreaCallback {
+                override fun onDeliveryAreaCallBack(data: List<DeliveryArea>) {
+                    val msgString = StringBuilder("нажата кнопка $test \n")
+
+                    for (are in data)
+                        msgString.append("${are.name} \n")
+
+                    sendMessage(update.callbackQuery.message.chatId, msgString.toString())
+                }
+            })
+
         }
     }
 
