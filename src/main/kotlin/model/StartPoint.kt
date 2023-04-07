@@ -1,7 +1,7 @@
 package model
 
 data class StartPoint(
-    val id:Int,
-    val name:String,
-    val address: String
+    val id: Int = 0,
+    val name: String = "",
+    val address: String = ""
 )

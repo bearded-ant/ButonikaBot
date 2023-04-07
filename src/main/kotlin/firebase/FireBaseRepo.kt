@@ -2,8 +2,8 @@ package firebase
 
 import com.google.firebase.database.*
 import model.DeliveryArea
+import model.StartPoint
 import org.apache.logging.log4j.kotlin.Logging
-import java.util.concurrent.Semaphore
 
 class FireBaseRepo(
 //    private val dbInstance: FirebaseDatabase,
@@ -44,6 +44,28 @@ class FireBaseRepo(
                         result.add(data.getValue(DeliveryArea::class.java))
 
                     callback.onDeliveryAreaCallBack(result)
+
+                } else {
+                    logger.debug("снапшот пустой")
+                    println("снапшот пустой")
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError?) {
+                logger.error(error?.message ?: "Что то полшло не так")
+            }
+        })
+    }
+
+    fun getStartPoint(callback: StartPointCallback) {
+        val result = mutableListOf<StartPoint>()
+        dbReference.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.hasChildren()) {
+                    for (data in snapshot.children)
+                        result.add(data.getValue(StartPoint::class.java))
+
+                    callback.onStartPointCallBack(result)
 
                 } else {
                     logger.debug("снапшот пустой")
