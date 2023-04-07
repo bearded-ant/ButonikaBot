@@ -1,8 +1,9 @@
 package model
 
 data class Courier(
-    val id: String? = null,
+    val id: String = "",
     val name: String = "",
     val nicName: String = "",
-    val deliveryArea: Int = 1
+    val deliveryAreaId: Int = 0,
+    val startPointId:Int = 0
 )

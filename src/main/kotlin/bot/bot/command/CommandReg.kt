@@ -1,7 +1,6 @@
 package bot.bot.command
 
 import bot.bot.keyboards.CourierRegKeyboard
-import com.google.firebase.database.FirebaseDatabase
 import firebase.FireBaseRepo
 import model.Courier
 import org.apache.logging.log4j.kotlin.Logging
@@ -12,9 +11,7 @@ class CommandReg : Command("reg", "регистрация"), Logging {
     private val courierRegKeyboard: CourierRegKeyboard = CourierRegKeyboard()
     override fun processMessage(absSender: AbsSender, message: Message, strings: Array<String>?) {
 
-        val database: FirebaseDatabase = FirebaseDatabase.getInstance()
-        val courierRef = database.getReference("courier")
-        val fireBaseRepo = FireBaseRepo(courierRef)
+        val fireBaseRepo = FireBaseRepo()
 
         if (!fireBaseRepo.isUserExist(message.chatId.toString())) {
             val courierNicName = message.from.userName ?: "anonymous"
@@ -24,13 +21,9 @@ class CommandReg : Command("reg", "регистрация"), Logging {
             val courier = Courier(
                 id = courierId,
                 name = courierRealName,
-                nicName = courierNicName,
-                deliveryArea = 1
-            )
-            val courierMap = mutableMapOf<String, Courier>()
-            courierMap[message.chatId.toString()] = courier
+                nicName = courierNicName)
 
-            courierRef.setValueAsync(courierMap)
+            fireBaseRepo.putCourier(courier)
 
             message.text = ("Добро пожаловать, $courierNicName!")
             message.replyMarkup = courierRegKeyboard.inlineRegistrationKeyboard()

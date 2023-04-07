@@ -3,10 +3,11 @@ package bot.bot
 import bot.bot.command.CommandHelp
 import bot.bot.command.CommandReg
 import bot.bot.command.CommandStart
-import com.google.firebase.database.FirebaseDatabase
 import firebase.DeliveryAreaCallback
 import firebase.FireBaseRepo
+import firebase.StartPointCallback
 import model.DeliveryArea
+import model.StartPoint
 import org.apache.logging.log4j.kotlin.logger
 import org.telegram.telegrambots.extensions.bots.commandbot.TelegramLongPollingCommandBot
 import org.telegram.telegrambots.extensions.bots.commandbot.commands.IBotCommand
@@ -116,21 +117,32 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             }
         } else if (update.hasCallbackQuery()) {
 
-            val test = update.callbackQuery.data
+            when (val callbackData = update.callbackQuery.data) {
+                "2" -> FireBaseRepo().getStartPoint(
+                    object : StartPointCallback {
+                        override fun onStartPointCallBack(data: List<StartPoint>) {
+                            val msgString = StringBuilder("нажата кнопка $callbackData \n")
 
-            val database = FirebaseDatabase.getInstance().getReference("deliveryArea")
+                            for (are in data)
+                                msgString.append("${are.name} \n")
 
-            FireBaseRepo(database).getDeliveryAreas(object : DeliveryAreaCallback {
-                override fun onDeliveryAreaCallBack(data: List<DeliveryArea>) {
-                    val msgString = StringBuilder("нажата кнопка $test \n")
+                            sendMessage(update.callbackQuery.message.chatId, msgString.toString())
+                        }
+                    })
 
-                    for (are in data)
-                        msgString.append("${are.name} \n")
+                "3" -> FireBaseRepo().getDeliveryAreas(
+                    object : DeliveryAreaCallback {
+                        override fun onDeliveryAreaCallBack(data: List<DeliveryArea>) {
+                            val msgString = StringBuilder("нажата кнопка $callbackData \n")
 
-                    sendMessage(update.callbackQuery.message.chatId, msgString.toString())
-                }
-            })
+                            for (are in data)
+                                msgString.append("${are.name} \n")
 
+                            sendMessage(update.callbackQuery.message.chatId, msgString.toString())
+                        }
+                    })
+                "4" -> FireBaseRepo().updateCourierDeliveryArea(update.callbackQuery.message.chatId.toString(),5)
+            }
         }
     }
 
