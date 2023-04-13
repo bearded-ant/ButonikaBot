@@ -1,7 +1,6 @@
 package bot.bot
 
 import bot.bot.command.CommandHelp
-import bot.bot.command.CommandReg
 import bot.bot.command.CommandStart
 import firebase.DeliveryAreaCallback
 import firebase.FireBaseRepo
@@ -41,6 +40,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             registerBot()
             registerCommands()
         } catch (e: TelegramApiException) {
+            logger("init error").error("Telegram Bot initialization error:  ${e.message}")
             throw RuntimeException("Telegram Bot initialization error: " + e.message)
         }
     }
@@ -54,7 +54,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                 .build()
             execute(sendMessage)
         } catch (e: TelegramApiException) {
-            logger(String.format("Sending message error: %s", e.message))
+            logger("msg all").error(String.format("Sending message error: %s", e.message))
         }
     }
 
@@ -67,7 +67,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             execute(photo)
 
         } catch (e: TelegramApiException) {
-            println(String.format("Sending image error: %s", e.message))
+            logger("msg photo").error(String.format("Sending image error: %s", e.message))
         }
     }
 
@@ -75,7 +75,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         sendImage(chatId, path)
         val file = File(path)
         if (!file.delete()) {
-            println(String.format("File '%s' removing error", path))
+            logger("msg send file").error(String.format("File '%s' removing error", path))
         }
     }
 
@@ -104,16 +104,16 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                 sendMessage(update.message.chatId, e.message!!)
             } catch (e: TelegramApiException) {
                 sendMessage(update.message.chatId, "Ошибка обработки сообщения TE")
-                println(String.format("Received message processing error: %s", e.message))
+                logger("command error").error(String.format("Received message processing error: %s", e.message))
             } catch (e: RuntimeException) {
                 sendMessage(update.message.chatId, "Ошибка обработки сообщения RE")
-                println(String.format("Received message processing error: %s", e.message))
+                logger("command error").error(String.format("Received message processing error: %s", e.message))
             } catch (e: IOException) {
                 sendMessage(update.message.chatId, "Ошибка обработки сообщения IO")
-                println(String.format("Received message processing error: %s", e.message))
+                logger("command error").error(String.format("Received message processing error: %s", e.message))
             } catch (e: UserException) {
                 sendMessage(update.message.chatId, "Ошибка обработки сообщения UE")
-                println(String.format("Received message processing error: %s", e.message))
+                logger("command error").error(String.format("Received message processing error: %s", e.message))
             }
         } else if (update.hasCallbackQuery()) {
 
@@ -157,7 +157,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
 
             messageType
         } catch (e: RuntimeException) {
-            logger(String.format("Invalid message type: %s", e.message))
+            logger("message type").error(String.format("Invalid message type: %s", e.message))
             null
         }
     }
@@ -181,7 +181,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             text
         )
         if (text.length > TEXT_LIMIT) {
-            logger(String.format("Message exceeds maximum length of %d", TEXT_LIMIT))
+            logger("msg text").info(String.format("Message exceeds maximum length of %d", TEXT_LIMIT))
         }
 
         val imageUrl: String = QRTools().encodeText(text)
@@ -201,7 +201,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun logMessage(chatId: Long, userId: Long, input: Boolean, logText: String) {
         var text = logText
         if (text.length > TEXT_LIMIT) text = text.substring(0, TEXT_LIMIT)
-        logger().info(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
+        logger("main log").info(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
     }
 
     private fun setRegisteredCommands() {
@@ -215,7 +215,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun registerCommands() {
         register(CommandStart())
         register(CommandHelp())
-        register(CommandReg())
+//        register(CommandReg())
         setRegisteredCommands()
     }
 
@@ -223,6 +223,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         try {
             telegramBotsApi.registerBot(this)
         } catch (e: TelegramApiException) {
+            logger("telegram").error("Telegram API initialization error: + ${e.message}")
             throw RuntimeException("Telegram API initialization error: " + e.message)
         }
     }

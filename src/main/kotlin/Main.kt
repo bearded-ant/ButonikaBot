@@ -5,11 +5,10 @@ import org.apache.logging.log4j.kotlin.logger
 fun main(args: Array<String>) {
 
     try {
-        val botProcessor: BotProcessor = BotProcessor.newInstance()
+        BotProcessor.newInstance()
         logger("main").info("Telegram bot started")
-    } catch (e:RuntimeException) {
+    } catch (e: RuntimeException) {
         logger("main").error(e.message.toString())
     }
     val fireBirdInit = FirebaseInit()
-
 }

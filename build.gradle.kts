@@ -30,6 +30,9 @@ dependencies {
     // firebase
     implementation("com.google.firebase:firebase-admin:9.1.1")
 
+    // kotlinx-coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+
 }
 
 tasks.test {
