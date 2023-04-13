@@ -1,7 +1,9 @@
 package firebase
 
-import com.google.firebase.database.*
-import kotlinx.coroutines.delay
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.suspendCancellableCoroutine
 import model.Courier
 import model.DeliveryArea
@@ -41,35 +43,9 @@ class FireBaseRepo() : Logging {
         return result
     }
 
-    suspend fun isRegistrationConfirmed(courierId: String): Boolean {
-        delay(5000)
-        return true
-    }
+    suspend fun isRegistrationConfirmed(courierId: String): Boolean =
+        getCourierFromId(courierId)?.isRegistrationConfirmed ?: false
 
-    suspend fun getDataFromFirebaseRealtimeDatabase(databaseReference: DatabaseReference): DataSnapshot? {
-        return suspendCancellableCoroutine { continuation ->
-            // Добавляем слушатель ValueEventListener для ожидания загрузки данных
-            val valueEventListener = object : ValueEventListener {
-                override fun onDataChange(dataSnapshot: DataSnapshot) {
-                    // Вызываем resume, передавая полученный DataSnapshot
-                    continuation.resume(dataSnapshot)
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    // Вызываем resumeWithException с ошибкой, если получена ошибка
-                    continuation.resumeWithException(error.toException())
-                }
-            }
-
-            // Добавляем слушатель к базовому DatabaseReference
-            databaseReference.addListenerForSingleValueEvent(valueEventListener)
-
-            // Удаляем слушатель при отмене корутины
-            continuation.invokeOnCancellation {
-                databaseReference.removeEventListener(valueEventListener)
-            }
-        }
-    }
 
     fun getDeliveryAreas(callback: DeliveryAreaCallback) {
 
@@ -117,28 +93,54 @@ class FireBaseRepo() : Logging {
         })
     }
 
-    fun getCourierFromId(courierId: String, callback: CourierCallback) {
-        var result = Courier()
-        val query = courierRef.orderByChild("id").equalTo(courierId)
-        query.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.hasChildren()) {
-                    for (data in snapshot.children) {
-                        result = data.getValue(Courier::class.java)
-                    }
-                    callback.onCourierCallBack(result)
+//    fun getCourierFromId(courierId: String, callback: CourierCallback) {
+//        var result = Courier()
+//        val query = courierRef.orderByChild("id").equalTo(courierId)
+//        query.addListenerForSingleValueEvent(object : ValueEventListener {
+//            override fun onDataChange(snapshot: DataSnapshot) {
+//                if (snapshot.hasChildren()) {
+//                    for (data in snapshot.children) {
+//                        result = data.getValue(Courier::class.java)
+//                    }
+//                    callback.onCourierCallBack(result)
+//
+//                } else {
+//                    logger.debug("снапшот пустой")
+//                    println("снапшот пустой")
+//                }
+//            }
+//
+//            override fun onCancelled(error: DatabaseError?) {
+//                logger.error(error?.message ?: "Что то полшло не так")
+//            }
+//        })
+//    }
 
-                } else {
-                    logger.debug("снапшот пустой")
-                    println("снапшот пустой")
+
+    suspend fun getCourierFromId(courierId: String): Courier? {
+        return suspendCancellableCoroutine { continuation ->
+            // Добавляем слушатель ValueEventListener для ожидания загрузки данных
+            val valueEventListener = object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    // Вызываем resume, передавая полученный DataSnapshot
+                    continuation.resume(dataSnapshot.getValue (Courier::class.java))
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    continuation.resumeWithException(error.toException())
                 }
             }
 
-            override fun onCancelled(error: DatabaseError?) {
-                logger.error(error?.message ?: "Что то полшло не так")
+            // Добавляем слушатель к базовому DatabaseReference
+            courierRef.addListenerForSingleValueEvent(valueEventListener)
+
+            // Удаляем слушатель при отмене корутины
+            continuation.invokeOnCancellation {
+                courierRef.removeEventListener(valueEventListener)
             }
-        })
+        }
     }
+
 
     fun updateCourierDeliveryArea(courierId: String, deliveryAreaId: Int) {
         val dbUpdateFormat = mutableMapOf<String, Int>()
