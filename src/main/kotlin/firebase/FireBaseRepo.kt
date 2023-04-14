@@ -130,7 +130,6 @@ class FireBaseRepo() : Logging {
         }
     }
 
-
     fun updateCourierDeliveryArea(courierId: String, deliveryAreaId: Int) {
         val dbUpdateFormat = mutableMapOf<String, Int>()
         dbUpdateFormat.put("$courierId/deliveryAreaId", deliveryAreaId)
@@ -139,7 +138,7 @@ class FireBaseRepo() : Logging {
 
     fun updateCourierStartPoint(courierId: String, startPointId: Int) {
         val dbUpdateFormat = mutableMapOf<String, Int>()
-        dbUpdateFormat.put("$courierId/startPoint", startPointId)
+        dbUpdateFormat.put("$courierId/startPointId", startPointId)
         courierRef.updateChildrenAsync(dbUpdateFormat as Map<String, Any>)
     }
 
@@ -149,9 +148,11 @@ class FireBaseRepo() : Logging {
         courierRef.updateChildrenAsync(dbUpdateFormat as Map<String, Any>)
     }
 
+    fun updateCourierRegStatus(courierId: String, result: Boolean) {
+        courierRef.updateChildrenAsync(mapOf("$courierId/registrationConfirmed" to result))
+    }
+
     fun putCourier(courier: Courier) {
-        val dbPutFormat = mutableMapOf<String, Courier>()
-        dbPutFormat.put(courier.id, courier)
-        courierRef.setValueAsync(dbPutFormat)
+        courierRef.setValueAsync(mapOf(courier.id to courier))
     }
 }

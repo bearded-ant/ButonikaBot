@@ -2,6 +2,7 @@ package bot.bot
 
 import bot.bot.command.CommandHelp
 import bot.bot.command.CommandStart
+import bot.bot.keyboards.InlineButtonFactory
 import firebase.DeliveryAreaCallback
 import firebase.FireBaseRepo
 import firebase.StartPointCallback
@@ -17,6 +18,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.PhotoSize
 import org.telegram.telegrambots.meta.api.objects.Update
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 import qr.QRTools
@@ -26,7 +28,6 @@ import java.util.stream.Collectors
 
 
 class BotProcessor : TelegramLongPollingCommandBot() {
-
     companion object {
         fun newInstance(): BotProcessor = BotProcessor()
 
@@ -41,7 +42,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             registerBot()
             registerCommands()
         } catch (e: TelegramApiException) {
-            logger("init error").error("Telegram Bot initialization error:  ${e.message}")
+            logger("botProcessor").error("Telegram Bot initialization error:  ${e.message}")
             throw RuntimeException("Telegram Bot initialization error: " + e.message)
         }
     }
@@ -55,7 +56,21 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                 .build()
             execute(sendMessage)
         } catch (e: TelegramApiException) {
-            logger("msg all").error(String.format("Sending message error: %s", e.message))
+            logger("botProcessor").error(String.format("Sending message error: %s", e.message))
+        }
+    }
+
+    private fun sendKeyboard(chatId: Long, message: String, keyboard: InlineKeyboardMarkup) {
+        try {
+            val sendMessage = SendMessage
+                .builder()
+                .chatId(chatId.toString())
+                .replyMarkup(keyboard)
+                .text(message)
+                .build()
+            execute(sendMessage)
+        } catch (e: TelegramApiException) {
+            logger("botProcessor").error(String.format("Sending keyboard error: %s", e.message))
         }
     }
 
@@ -68,7 +83,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             execute(photo)
 
         } catch (e: TelegramApiException) {
-            logger("msg photo").error(String.format("Sending image error: %s", e.message))
+            logger("botProcessor").error(String.format("Sending image error: %s", e.message))
         }
     }
 
@@ -118,38 +133,62 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                 logger("command error").error(String.format("Received message processing error: %s", e.message))
             }
         } else if (update.hasCallbackQuery()) {
-
+            val callbackChatId = update.callbackQuery.message.chatId
             when (val callbackData = update.callbackQuery.data) {
                 "1" -> {
-                    sendMessage(update.callbackQuery.message.chatId, "введите ФИО")
-                    courierEditFlag.add(update.callbackQuery.message.chatId.toString())
+                    sendMessage(callbackChatId, "введите ФИО")
+                    courierEditFlag.add(callbackChatId.toString())
                 }
 
                 "2" -> FireBaseRepo().getStartPoint(
                     object : StartPointCallback {
-                        override fun onStartPointCallBack(data: List<StartPoint>) {
-                            val msgString = StringBuilder("нажата кнопка $callbackData \n")
+                        override fun onStartPointCallBack(startPoints: List<StartPoint>) {
+                            val msgString = StringBuilder("Выберите одну точку старта")
+                            val buttons = mutableListOf<Pair<String, String>>()
+                            for (data in startPoints)
+                                buttons.add(data.name to data.id.toString())
 
-                            for (are in data)
-                                msgString.append("${are.name} \n")
-
-                            sendMessage(update.callbackQuery.message.chatId, msgString.toString())
+                            sendKeyboard(
+                                callbackChatId,
+                                msgString.toString(),
+                                InlineButtonFactory.createInlineKeyboardMarkup(buttons)
+                            )
                         }
                     })
 
                 "3" -> FireBaseRepo().getDeliveryAreas(
                     object : DeliveryAreaCallback {
-                        override fun onDeliveryAreaCallBack(data: List<DeliveryArea>) {
-                            val msgString = StringBuilder("нажата кнопка $callbackData \n")
+                        override fun onDeliveryAreaCallBack(deliveryAreas: List<DeliveryArea>) {
+                            val msgString = StringBuilder("Выберите один район доставки")
+                            val buttons = mutableListOf<Pair<String, String>>()
+                            for (data in deliveryAreas)
+                                buttons.add(data.name to data.id.toString())
 
-                            for (are in data)
-                                msgString.append("${are.name} \n")
-
-                            sendMessage(update.callbackQuery.message.chatId, msgString.toString())
+                            sendKeyboard(
+                                callbackChatId,
+                                msgString.toString(),
+                                InlineButtonFactory.createInlineKeyboardMarkup(buttons)
+                            )
                         }
                     })
 
-                "4" -> FireBaseRepo().updateCourierDeliveryArea(update.callbackQuery.message.chatId.toString(), 5)
+                "4" -> {
+                    FireBaseRepo().updateCourierRegStatus(callbackChatId.toString(), true)
+                    sendMessage(callbackChatId, "отправил запрос регистрации менеджеру")
+                }
+
+                "11", "12" -> {
+                    FireBaseRepo().updateCourierStartPoint(callbackChatId.toString(), update.callbackQuery.data.toInt())
+                    sendMessage(callbackChatId, "записал")
+                }
+
+                "21", "22", "23", "24" -> {
+                    FireBaseRepo().updateCourierDeliveryArea(
+                        callbackChatId.toString(),
+                        update.callbackQuery.data.toInt()
+                    )
+                    sendMessage(callbackChatId, "записал")
+                }
             }
         }
     }
@@ -187,10 +226,9 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         if (id in courierEditFlag) {
             if (checkInputText(name)) {
                 courierEditFlag.remove(id)
-                FireBaseRepo().updateCourierName(id,name)
-                sendMessage(id.toLong(),"Записал [ $name ]")
-            }
-            else {
+                FireBaseRepo().updateCourierName(id, name)
+                sendMessage(id.toLong(), "Записал [ $name ]")
+            } else {
                 sendMessage(id.toLong(), "Допустимы только русские и английские буквы. попробуйте еще раз")
             }
         } else {

@@ -11,11 +11,13 @@ class CourierRegKeyboard {
         val selectAreaButton = "выбрать район доставки" to "3"
         val acceptRegistration = "подтвердить регистрацию" to "4"
 
-        return InlineButtonFactory.createInlineKeyboardMarkup(
+        val buttons: List<Pair<String, String>> = listOf(
             nameRegistrationButton,
             selectPointsButton,
             selectAreaButton,
             acceptRegistration
         )
+
+        return InlineButtonFactory.createInlineKeyboardMarkup(buttons)
     }
 }

@@ -4,7 +4,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
 object InlineButtonFactory {
-    fun createInlineKeyboardMarkup(vararg buttons: Pair<String, String>): InlineKeyboardMarkup {
+    fun createInlineKeyboardMarkup( buttons: List<Pair<String, String>>): InlineKeyboardMarkup {
         val inlineKeyboardMarkup = InlineKeyboardMarkup()
         val inlineKeyboardButtons = mutableListOf<List<InlineKeyboardButton>>()
 

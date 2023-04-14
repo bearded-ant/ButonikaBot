@@ -3,5 +3,5 @@ package firebase
 import model.StartPoint
 
 interface StartPointCallback {
-    fun onStartPointCallBack(data: List<StartPoint>)
+    fun onStartPointCallBack(startPoints: List<StartPoint>)
 }
