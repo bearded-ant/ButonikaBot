@@ -153,6 +153,6 @@ class FireBaseRepo() : Logging {
     }
 
     fun putCourier(courier: Courier) {
-        courierRef.setValueAsync(mapOf(courier.id to courier))
+        courierRef.updateChildrenAsync(mapOf(courier.id to courier))
     }
 }
