@@ -2,6 +2,7 @@ package bot.bot
 
 import bot.bot.command.CommandHelp
 import bot.bot.command.CommandStart
+import bot.bot.keyboards.CourierRegKeyboard
 import bot.bot.keyboards.InlineButtonFactory
 import firebase.DeliveryAreaCallback
 import firebase.FireBaseRepo
@@ -179,7 +180,8 @@ class BotProcessor : TelegramLongPollingCommandBot() {
 
                 "11", "12" -> {
                     FireBaseRepo().updateCourierStartPoint(callbackChatId.toString(), update.callbackQuery.data.toInt())
-                    sendMessage(callbackChatId, "записал")
+                    sendMessage(callbackChatId, "записал \n")
+                    sendKeyboard(callbackChatId, "продолжим", CourierRegKeyboard().inlineRegistrationKeyboard())
                 }
 
                 "21", "22", "23", "24" -> {
@@ -187,7 +189,8 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                         callbackChatId.toString(),
                         update.callbackQuery.data.toInt()
                     )
-                    sendMessage(callbackChatId, "записал")
+                    sendMessage(callbackChatId, "записал \n")
+                    sendKeyboard(callbackChatId, "продолжим", CourierRegKeyboard().inlineRegistrationKeyboard())
                 }
             }
         }
@@ -227,7 +230,8 @@ class BotProcessor : TelegramLongPollingCommandBot() {
             if (checkInputText(name)) {
                 courierEditFlag.remove(id)
                 FireBaseRepo().updateCourierName(id, name)
-                sendMessage(id.toLong(), "Записал [ $name ]")
+                sendMessage(id.toLong(), "Записал [ $name ] \n")
+                sendKeyboard(id.toLong(), "продолжим", CourierRegKeyboard().inlineRegistrationKeyboard())
             } else {
                 sendMessage(id.toLong(), "Допустимы только русские и английские буквы. попробуйте еще раз")
             }
