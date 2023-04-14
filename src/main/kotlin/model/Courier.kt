@@ -6,5 +6,5 @@ data class Courier(
     val nicName: String = "",
     val deliveryAreaId: Int = 0,
     val startPointId:Int = 0,
-    val isRegistrationConfirmed:Boolean = false
+    val registrationConfirmed:Boolean = false
 )
