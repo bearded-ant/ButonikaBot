@@ -33,6 +33,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         private const val TEXT_LIMIT = 512
         val botSettings = BotSettings.instance
         val telegramBotsApi = TelegramBotsApi(DefaultBotSession::class.java)
+        val courierEditFlag = mutableSetOf<String>()
     }
 
     init {
@@ -99,6 +100,7 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                     MessageType.COMMAND -> processInvalidCommandUpdate(update)
                     MessageType.IMAGE -> processImage(update)
                     MessageType.TEXT -> processText(update)
+//                    MessageType.TEXT -> processTextToQRCode(update)
                 }
             } catch (e: UserException) {
                 sendMessage(update.message.chatId, e.message!!)
@@ -118,6 +120,11 @@ class BotProcessor : TelegramLongPollingCommandBot() {
         } else if (update.hasCallbackQuery()) {
 
             when (val callbackData = update.callbackQuery.data) {
+                "1" -> {
+                    sendMessage(update.callbackQuery.message.chatId, "введите ФИО")
+                    courierEditFlag.add(update.callbackQuery.message.chatId.toString())
+                }
+
                 "2" -> FireBaseRepo().getStartPoint(
                     object : StartPointCallback {
                         override fun onStartPointCallBack(data: List<StartPoint>) {
@@ -141,7 +148,8 @@ class BotProcessor : TelegramLongPollingCommandBot() {
                             sendMessage(update.callbackQuery.message.chatId, msgString.toString())
                         }
                     })
-                "4" -> FireBaseRepo().updateCourierDeliveryArea(update.callbackQuery.message.chatId.toString(),5)
+
+                "4" -> FireBaseRepo().updateCourierDeliveryArea(update.callbackQuery.message.chatId.toString(), 5)
             }
         }
     }
@@ -173,13 +181,34 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     }
 
     private fun processText(update: Update) {
+        val id = update.message.chatId.toString()
+        val name = update.message.text
+
+        if (id in courierEditFlag) {
+            if (checkInputText(name)) {
+                courierEditFlag.remove(id)
+                FireBaseRepo().updateCourierName(id,name)
+                sendMessage(id.toLong(),"Записал [ $name ]")
+            }
+            else {
+                sendMessage(id.toLong(), "Допустимы только русские и английские буквы. попробуйте еще раз")
+            }
+        } else {
+            sendMessage(id.toLong(), "Не знаю что делать")
+        }
+
+    }
+
+    private fun checkInputText(inputString: String): Boolean {
+        val regex = Regex("""^[а-яА-Яa-zA-Z\s]+$""")
+        return inputString.matches(regex)
+    }
+
+    private fun processTextToQRCode(update: Update) {
         val text = update.message.text
-        logMessage(
-            update.message.chatId,
-            update.message.from.id,
-            true,
-            text
-        )
+
+        logMessage(update.message.chatId, update.message.from.id, true, text)
+
         if (text.length > TEXT_LIMIT) {
             logger("msg text").info(String.format("Message exceeds maximum length of %d", TEXT_LIMIT))
         }
@@ -201,7 +230,9 @@ class BotProcessor : TelegramLongPollingCommandBot() {
     private fun logMessage(chatId: Long, userId: Long, input: Boolean, logText: String) {
         var text = logText
         if (text.length > TEXT_LIMIT) text = text.substring(0, TEXT_LIMIT)
-        logger("main log").info(String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text))
+        logger("main log").info(
+            String.format("CHAT [%d] MESSAGE %s %d: %s", chatId, if (input) "FROM" else "TO", userId, text)
+        )
     }
 
     private fun setRegisteredCommands() {
